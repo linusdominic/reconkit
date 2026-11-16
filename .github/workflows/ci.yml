@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --python 3.12
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: reconkit
+          POSTGRES_PASSWORD: reconkit
+          POSTGRES_DB: reconkit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reconkit -d reconkit"
+          --health-interval 2s --health-timeout 3s --health-retries 30
+    env:
+      RECONKIT_TEST_PG_URL: postgresql://reconkit:reconkit@localhost:5432/reconkit
+      RECONKIT_REQUIRE_PG: "1"   # a missing database is a failure in CI, not a skip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --python ${{ matrix.python-version }}
+      - run: uv run pytest --cov --cov-report=term --cov-report=xml --junitxml=pytest.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            pytest.xml
+            coverage.xml
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - name: Install the wheel into a clean environment and run it
+        run: |
+          uv venv /tmp/smoke --python 3.12
+          uv pip install --python /tmp/smoke/bin/python "$(ls dist/*.whl)[duckdb]"
+          /tmp/smoke/bin/reconkit --version
+          /tmp/smoke/bin/python -c "import reconkit.integrations.airflow, reconkit.integrations.dagster"
