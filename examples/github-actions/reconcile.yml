@@ -1,0 +1,68 @@
+# Copy to .github/workflows/reconcile.yml in the repository that holds your reconkit.yml.
+#
+# Two jobs:
+#   contract-gate  runs on pull requests that touch contracts/ and fails on breaking
+#                  changes that do not come with a major version bump.
+#   reconcile      runs nightly (and on demand), publishes JUnit results and the HTML report.
+#
+# Secrets are read from the environment by reconkit.yml (${OLTP_PASSWORD} and so on).
+#
+# reconkit is not published to PyPI. RECONKIT_SOURCE below installs it from a git
+# reference; point it at your fork and pin a tag or commit.
+name: Reconcile
+
+on:
+  pull_request:
+    paths: ["contracts/**"]
+  schedule:
+    - cron: "30 18 * * *"   # 02:30 SGT
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RECONKIT_SOURCE: git+https://github.com/linusdominic/reconkit@v0.1.0
+
+jobs:
+  contract-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+      - name: Diff each changed contract against the base branch
+        run: |
+          status=0
+          for file in $(git diff --name-only "origin/${{ github.base_ref }}"... -- contracts/); do
+            [ -f "$file" ] || { echo "::error file=$file::contract deleted"; status=1; continue; }
+            git show "origin/${{ github.base_ref }}:$file" > /tmp/old.yml 2>/dev/null || continue
+            uvx --from "reconkit @ $RECONKIT_SOURCE" reconkit contract diff /tmp/old.yml "$file" --format markdown \
+              --require-major-bump >> "$GITHUB_STEP_SUMMARY" || status=1
+          done
+          exit $status
+
+  reconcile:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      OLTP_PASSWORD: ${{ secrets.OLTP_PASSWORD }}
+      WAREHOUSE_PASSWORD: ${{ secrets.WAREHOUSE_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Run all checks
+        # Exit code 1 = differences found, 3 = a check could not run. Both fail the job.
+        run: >
+          uvx --from "reconkit[postgres,duckdb] @ $RECONKIT_SOURCE" reconkit run --all
+          --junit reconkit.xml --html reconkit.html --json reconkit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reconkit-report
+          path: |
+            reconkit.html
+            reconkit.json
+            reconkit.xml

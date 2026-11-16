@@ -1,0 +1,44 @@
+# Loan-origination example: Postgres system of record vs. its warehouse copy in DuckDB.
+version: 1
+
+connections:
+  oltp:
+    type: postgres
+    host: ${RECONKIT_PG_HOST:-localhost}
+    port: ${RECONKIT_PG_PORT:-55439}
+    dbname: reconkit
+    user: reconkit
+    password: ${RECONKIT_PG_PASSWORD}   # secrets must be environment references
+  warehouse:
+    type: duckdb
+    path: warehouse.duckdb              # relative to this file
+
+# Every run is recorded in analytics.recon_audit_runs; differing rows in analytics.recon_audit.
+audit:
+  connection: warehouse
+  table: analytics.recon_audit
+
+checks:
+  loans:
+    description: lending.loans (OLTP) against analytics.fct_loans (warehouse)
+    left:
+      connection: oltp
+      table: lending.loans
+    right:
+      connection: warehouse
+      table: analytics.fct_loans
+      # The warehouse stores timezone-naive timestamps in local time. Without this line
+      # every row would differ by eight hours.
+      naive_timezone: Asia/Singapore
+    key: loan_id
+    mapping:
+      status: loan_status              # left name: right name
+    tolerances:
+      interest_rate: {abs: 0.0005}     # an old job rounded rates to three decimals
+    options:
+      trim_whitespace: true            # branch_code is CHAR(6) in Postgres
+
+contracts:
+  fct_loans:
+    connection: warehouse
+    contract: contracts/fct_loans.yml

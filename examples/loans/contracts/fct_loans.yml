@@ -1,0 +1,95 @@
+# Data contract for the warehouse loans fact table.
+# Shape follows the Open Data Contract Standard (ODCS) v3; see docs/contracts.md.
+apiVersion: v3.1.0
+kind: DataContract
+id: lending.fct_loans
+name: fct_loans
+version: 1.2.0
+status: active
+description:
+  purpose: One row per loan application, loaded nightly from the loan origination system.
+
+schema:
+  - name: fct_loans
+    physicalName: analytics.fct_loans
+    properties:
+      - name: loan_id
+        logicalType: integer
+        physicalType: BIGINT
+        primaryKey: true
+        required: true
+      - name: customer_id
+        logicalType: integer
+        required: true
+        relationships:
+          - type: foreignKey
+            to: analytics.dim_customers.customer_id
+      - name: product_code
+        logicalType: string
+        required: true
+      - name: loan_status
+        logicalType: string
+        required: true
+        quality:
+          - name: known_status
+            metric: invalidValues
+            arguments:
+              validValues: [APPROVED, DISBURSED, REJECTED, WITHDRAWN, CLOSED]
+            mustBe: 0
+      - name: principal_amount
+        logicalType: number
+        physicalType: DECIMAL(14,2)
+        required: true
+        quality:
+          - name: positive_principal
+            type: sql
+            query: SELECT COUNT(*) FROM ${object} WHERE ${property} <= 0
+            mustBe: 0
+      - name: interest_rate
+        logicalType: number
+        required: true
+      - name: term_months
+        logicalType: integer
+        required: true
+      - name: currency
+        logicalType: string
+        required: true
+        quality:
+          - metric: invalidValues
+            arguments:
+              validValues: [SGD]
+            mustBe: 0
+      - name: originated_at
+        logicalType: timestamp
+        required: true
+      - name: disbursed_at
+        logicalType: timestamp
+        quality:
+          - name: mostly_disbursed
+            metric: nullValues
+            unit: percent
+            mustBeLessThan: 50
+      - name: is_secured
+        logicalType: boolean
+        required: true
+      - name: branch_code
+        logicalType: string
+        required: true
+      - name: _loaded_at
+        logicalType: timestamp
+        required: true
+        quality:
+          - name: loaded_within_a_day
+            metric: freshness
+            unit: hours
+            mustBeLessThan: 24
+    quality:
+      - name: row_count_in_expected_range
+        metric: rowCount
+        mustBeBetween: [1000, 10000000]
+      - name: disbursed_loans_have_a_disbursement_time
+        type: sql
+        query: >
+          SELECT COUNT(*) FROM ${object}
+          WHERE loan_status IN ('DISBURSED', 'CLOSED') AND disbursed_at IS NULL
+        mustBe: 0

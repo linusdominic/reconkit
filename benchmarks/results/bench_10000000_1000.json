@@ -1,0 +1,82 @@
+{
+  "rows": 10000000,
+  "diffs": 1000,
+  "runs": 3,
+  "generation_seconds": {
+    "postgres": 87.34714091697242,
+    "duckdb": 8.488952874904498
+  },
+  "machine": {
+    "cpu": "Apple M5",
+    "cores": "10",
+    "os": "Darwin 25.6.0 (arm64)",
+    "python": "3.12.14",
+    "postgres": "PostgreSQL 16.14",
+    "duckdb": "2.0.0",
+    "psycopg": "3.3.9",
+    "docker": "10 CPUs, 8321515520 bytes RAM in VM"
+  },
+  "results": [
+    {
+      "scenario": "identical",
+      "seconds": 30.180534124956466,
+      "queries": 6,
+      "rows_transferred": 125018,
+      "rows_downloaded": 0,
+      "levels": 1,
+      "strategy": "reconkit (range)",
+      "seconds_min": 27.170576917007565,
+      "seconds_max": 50.985585542046465,
+      "runs": 3
+    },
+    {
+      "scenario": "identical",
+      "seconds": 24.405805416055955,
+      "queries": 6,
+      "rows_transferred": 524306,
+      "rows_downloaded": 0,
+      "levels": 1,
+      "strategy": "reconkit (hash)",
+      "seconds_min": 24.05628329096362,
+      "seconds_max": 31.18421750003472,
+      "runs": 3
+    },
+    {
+      "scenario": "1,000 differing rows",
+      "seconds": 26.8946028330829,
+      "queries": 22,
+      "rows_transferred": 197584,
+      "rows_downloaded": 9334,
+      "levels": 2,
+      "strategy": "reconkit (range)",
+      "seconds_min": 23.41974616702646,
+      "seconds_max": 30.766366665950045,
+      "runs": 3
+    },
+    {
+      "scenario": "1,000 differing rows",
+      "seconds": 46.94307504198514,
+      "queries": 8,
+      "rows_transferred": 602046,
+      "rows_downloaded": 77740,
+      "levels": 1,
+      "strategy": "reconkit (hash)",
+      "seconds_min": 46.61524766602088,
+      "seconds_max": 76.1421396669466,
+      "runs": 3
+    },
+    {
+      "scenario": "1,000 differing rows",
+      "seconds": 47.23516445804853,
+      "queries": 2,
+      "rows_transferred": 19999334,
+      "rows_downloaded": 19999334,
+      "levels": null,
+      "strategy": "baseline (download and compare)",
+      "seconds_min": 44.790547291981056,
+      "seconds_max": 49.939845042070374,
+      "runs": 3
+    }
+  ],
+  "sweep": []
+}

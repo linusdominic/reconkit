@@ -1,0 +1,45 @@
+ 1:16  up 78 days, 19:18, 1 user, load averages: 7.79 10.19 10.44
+generating 1,000,000 rows in each database ...
+  postgres 2.6s, duckdb 0.4s
+identical tables:
+  reconkit (range)                       1.15s  (min 0.77, max 1.50)     6 queries        31,268 rows transferred
+  reconkit (hash)                        1.16s  (min 1.03, max 1.25)     6 queries        62,518 rows transferred
+1,000 differing rows:
+  reconkit (range)                       1.48s  (min 1.16, max 1.85)    14 queries       155,146 rows transferred
+  reconkit (hash)                        3.47s  (min 3.08, max 4.47)     8 queries       126,370 rows transferred
+  baseline (download and compare)        2.83s  (min 2.57, max 4.67)     2 queries     1,999,334 rows transferred
+parameter sweep (range bucketing):
+  f=32 t=16384 i=32                      6.12s  (min 4.08, max 15.77)    16 queries     1,279,224 rows transferred
+  f=32 t=1024 i=32                       9.40s  (min 5.16, max 11.28)    14 queries     1,269,210 rows transferred
+  f=32 t=64 i=32                        11.64s  (min 7.88, max 15.85)    22 queries       103,400 rows transferred
+  f=32 t=64 i=1024                       3.65s  (min 3.58, max 7.08)    20 queries       103,336 rows transferred
+  f=32 t=16 i=auto                       2.62s  (min 2.21, max 3.53)    14 queries       156,096 rows transferred
+  f=32 t=64 i=auto                       2.22s  (min 1.96, max 2.55)    14 queries       155,146 rows transferred
+  f=32 t=256 i=auto                      3.03s  (min 2.24, max 4.53)    14 queries       466,430 rows transferred
+  f=8 t=64 i=auto                        2.74s  (min 2.62, max 3.45)    14 queries       155,146 rows transferred
+
+### 1,000,000 rows, 8 columns, 1,000 injected differences (median of 5 runs)
+
+| Scenario | Strategy | Wall time | Queries | Rows transferred | Table rows downloaded |
+| --- | --- | ---: | ---: | ---: | ---: |
+| identical | reconkit (range) | 1.15 s | 6 | 31,268 | 0 |
+| identical | reconkit (hash) | 1.16 s | 6 | 62,518 | 0 |
+| 1,000 differing rows | reconkit (range) | 1.48 s | 14 | 155,146 | 123,878 |
+| 1,000 differing rows | reconkit (hash) | 3.47 s | 8 | 126,370 | 63,872 |
+| 1,000 differing rows | baseline (download and compare) | 2.83 s | 2 | 1,999,334 | 1,999,334 |
+
+| factor | threshold | initial buckets | Wall time | Queries | Rows transferred | Levels |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 32 | 16384 | 32 | 6.12 s | 16 | 1,279,224 | 2 |
+| 32 | 1024 | 32 | 9.40 s | 14 | 1,269,210 | 2 |
+| 32 | 64 | 32 | 11.64 s | 22 | 103,400 | 3 |
+| 32 | 64 | 1024 | 3.65 s | 20 | 103,336 | 2 |
+| 32 | 16 | auto | 2.62 s | 14 | 156,096 | 1 |
+| 32 | 64 | auto | 2.22 s | 14 | 155,146 | 1 |
+| 32 | 256 | auto | 3.03 s | 14 | 466,430 | 1 |
+| 8 | 64 | auto | 2.74 s | 14 | 155,146 | 1 |
+
+Machine: cpu: Apple M5; cores: 10; os: Darwin 25.6.0 (arm64); python: 3.12.14; postgres: PostgreSQL 16.14; duckdb: 2.0.0; psycopg: 3.3.9; docker: 10 CPUs, 8321515520 bytes RAM in VM
+
+written: benchmarks/results/bench_1000000_1000.md and benchmarks/results/bench_1000000_1000.json
+ 1:21  up 78 days, 19:23, 1 user, load averages: 16.30 13.24 11.69
