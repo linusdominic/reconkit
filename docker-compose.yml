@@ -1,0 +1,23 @@
+# Local Postgres for integration tests, the example and the benchmark.
+# Non-default host port so it does not collide with other local stacks.
+name: reconkit-dev
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: reconkit
+      POSTGRES_PASSWORD: reconkit
+      POSTGRES_DB: reconkit
+    ports:
+      - "55439:5432"
+    mem_limit: 1g
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reconkit -d reconkit"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
