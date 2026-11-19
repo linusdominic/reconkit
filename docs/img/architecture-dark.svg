@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="422" viewBox="0 0 1040 422" role="img" aria-label="Architecture: reconkit.yml defines connections, checks and contracts; the Runner resolves each column pair to one canonical text form (resolve_columns), then the Bisector asks both databases, through their dialects, for bucket, row count and checksum, one GROUP BY per level, splitting only the buckets that disagree. Rows from mismatching buckets are downloaded and compare_rows applies tolerances and decides the differences. Contract checks run against the live table. Results go to terminal, JSON, JUnit XML and HTML reports and optional audit tables.">
+  <title>Architecture: reconkit.yml defines connections, checks and contracts; the Runner resolves each column pair to one canonical text form (resolve_columns), then the Bisector asks both databases, through their dialects, for bucket, row count and checksum, one GROUP BY per level, splitting only the buckets that disagree. Rows from mismatching buckets are downloaded and compare_rows applies tolerances and decides the differences. Contract checks run against the live table. Results go to terminal, JSON, JUnit XML and HTML reports and optional audit tables.</title>
+  <rect x="0.5" y="0.5" width="1039" height="421" rx="12" fill="#0d1117" stroke="#30363d"/>
+  <text x="28.0" y="40.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#f0f6fc" text-anchor="start">How a check runs</text>
+  <text x="28.0" y="60.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#9198a1" text-anchor="start">Each database checksums its own rows. Only buckets that disagree are downloaded, and the local comparison decides.</text>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#757e8a"/></marker></defs>
+  <path d="M192.8,226.0 C212.8,226.0 209.8,226.0 229.8,226.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M397.6,226.0 C417.6,226.0 414.6,226.0 434.6,226.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M397.6,226.0 C417.6,226.0 414.6,336.0 434.6,336.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M602.4,226.0 C622.4,226.0 619.4,226.0 639.4,226.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M724.8,162.0 L724.8,185.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M807.2,226.0 C827.2,226.0 824.2,226.0 844.2,226.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M929.6,264.0 L929.6,287.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M602.4,336.0 C724.8,336.0 721.8,336.0 844.2,336.0" fill="none" stroke="#757e8a" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="28.0" y="188.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="29.0" y="196.0" width="3" height="60.0" rx="1.5" fill="#3987e5"/>
+  <text x="42.0" y="213.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">reconkit.yml</text>
+  <text x="42.0" y="233.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">connections, checks,</text>
+  <text x="42.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">tolerances, contracts</text>
+  <rect x="232.8" y="188.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="233.8" y="196.0" width="3" height="60.0" rx="1.5" fill="#4d5560"/>
+  <text x="246.8" y="213.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">Runner</text>
+  <text x="246.8" y="233.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">runner.py, one outcome</text>
+  <text x="246.8" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">per check</text>
+  <rect x="437.6" y="188.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="438.6" y="196.0" width="3" height="60.0" rx="1.5" fill="#4d5560"/>
+  <text x="451.6" y="213.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">resolve_columns</text>
+  <text x="451.6" y="233.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">one canonical text form</text>
+  <text x="451.6" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">per column pair</text>
+  <rect x="642.4" y="86.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="643.4" y="94.0" width="3" height="60.0" rx="1.5" fill="#3987e5"/>
+  <text x="656.4" y="111.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">Both databases</text>
+  <text x="656.4" y="131.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">one GROUP BY per level,</text>
+  <text x="656.4" y="147.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">SQL from each dialect</text>
+  <rect x="642.4" y="188.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="643.4" y="196.0" width="3" height="60.0" rx="1.5" fill="#4d5560"/>
+  <text x="656.4" y="213.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">Bisector</text>
+  <text x="656.4" y="233.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">compare buckets, split</text>
+  <text x="656.4" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">only those that differ</text>
+  <rect x="847.2" y="188.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="848.2" y="196.0" width="3" height="60.0" rx="1.5" fill="#d95926"/>
+  <text x="861.2" y="213.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">compare_rows</text>
+  <text x="861.2" y="233.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">mismatching buckets</text>
+  <text x="861.2" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">only; tolerances decide</text>
+  <rect x="437.6" y="298.0" width="164.8" height="76.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="438.6" y="306.0" width="3" height="60.0" rx="1.5" fill="#d95926"/>
+  <text x="451.6" y="323.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">check_contract</text>
+  <text x="451.6" y="343.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">schema and quality</text>
+  <text x="451.6" y="359.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">rules on the live table</text>
+  <rect x="847.2" y="290.0" width="164.8" height="92.0" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <rect x="848.2" y="298.0" width="3" height="76.0" rx="1.5" fill="#199e70"/>
+  <text x="861.2" y="315.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13.5" font-weight="600" fill="#f0f6fc" text-anchor="start">Reports</text>
+  <text x="861.2" y="335.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">terminal, JSON, JUnit</text>
+  <text x="861.2" y="351.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">XML, HTML; audit</text>
+  <text x="861.2" y="367.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">tables</text>
+  <rect x="727.8" y="167.0" width="141.4" height="16" rx="4" fill="#0d1117"/>
+  <text x="730.8" y="179.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#9198a1" text-anchor="start">bucket, count, checksum</text>
+  <rect x="809.1" y="207.0" width="36.2" height="16" rx="4" fill="#0d1117"/>
+  <text x="827.2" y="219.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#9198a1" text-anchor="middle">rows</text>
+  <rect x="28.0" y="402.0" width="3" height="12" rx="1.5" fill="#3987e5"/>
+  <text x="38.0" y="412.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">input</text>
+  <rect x="91.0" y="402.0" width="3" height="12" rx="1.5" fill="#4d5560"/>
+  <text x="101.0" y="412.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">step</text>
+  <rect x="150.5" y="402.0" width="3" height="12" rx="1.5" fill="#199e70"/>
+  <text x="160.5" y="412.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">stored result</text>
+  <rect x="261.6" y="402.0" width="3" height="12" rx="1.5" fill="#d95926"/>
+  <text x="271.6" y="412.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#9198a1" text-anchor="start">check</text>
+</svg>

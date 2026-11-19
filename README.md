@@ -307,6 +307,14 @@ a nightly reconciliation job and a pull-request gate on contract changes is in
 
 ## How it works
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/architecture-dark.svg">
+  <img alt="Architecture: reconkit.yml defines connections, checks and contracts; the Runner resolves each column pair to one canonical text form (resolve_columns), then the Bisector asks both databases, through their dialects, for bucket, row count and checksum, one GROUP BY per level, splitting only the buckets that disagree. Rows from mismatching buckets are downloaded and compare_rows applies tolerances and decides the differences. Contract checks run against the live table. Results go to terminal, JSON, JUnit XML and HTML reports and optional audit tables." src="docs/img/architecture-light.svg">
+</picture>
+
+<details>
+<summary>The same diagram as text, with more detail</summary>
+
 ```mermaid
 flowchart TD
     A[Read both catalogues, pick one canonical text form per column pair] --> B{Same connection?}
@@ -322,6 +330,8 @@ flowchart TD
     J --> H
     H --> R[missing in left / missing in right / changed, per column]
 ```
+
+</details>
 
 1. **Normalise in SQL.** Each compared column is rendered, inside its own database, to a
    canonical text form chosen from both sides' types: `1234.50`, `2024-03-10
@@ -348,6 +358,11 @@ baseline streams `SELECT * ... ORDER BY id` from both databases and merge-compar
 Python. Method and caveats are in [benchmarks/README.md](benchmarks/README.md); raw
 output is in [benchmarks/results/](benchmarks/results/).
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/results-dark.svg">
+  <img alt="Benchmark headline: with 1,000 differing rows, reconkit with range buckets transferred 1.0% of the rows the download-and-compare baseline moved at 10,000,000 rows and 7.8% at 1,000,000 rows; identical tables needed 0 table rows downloaded; the bundled data-diff example reported 11 of 11 planted differences in a 1,000,000-row table and nothing else, downloading 1,151 rows." src="docs/img/results-light.svg">
+</picture>
+
 **1,000,000 rows, 1,000 differing rows (median of 5 runs, min to max in brackets)**
 
 | Scenario | Strategy | Wall time | Queries | Rows transferred | of which table rows |
@@ -357,6 +372,11 @@ output is in [benchmarks/results/](benchmarks/results/).
 | 1,000 differ | reconkit, range buckets | 1.48 s (1.16 to 1.85) | 14 | 155,146 | 123,878 |
 | 1,000 differ | reconkit, hash buckets | 3.47 s (3.08 to 4.47) | 8 | 126,370 | 63,872 |
 | 1,000 differ | download both and compare | 2.83 s (2.57 to 4.67) | 2 | 1,999,334 | 1,999,334 |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/rows-transferred-dark.svg">
+  <img alt="Rows transferred to find 1,000 differing rows in a 10,000,000-row table: reconkit with range buckets 197,584; reconkit with hash buckets 602,046; download both and compare 19,999,334." src="docs/img/rows-transferred-light.svg">
+</picture>
 
 **10,000,000 rows, 1,000 differing rows (median of 3 runs)**
 
