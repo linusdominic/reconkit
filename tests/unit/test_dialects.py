@@ -1,8 +1,8 @@
 """Golden SQL snapshots per dialect.
 
-Snowflake, BigQuery and Redshift are not run against live accounts, so these snapshots
-plus a sqlglot parse in the target grammar are the extent of their verification. To
-update after an intentional change: RECONKIT_UPDATE_SNAPSHOTS=1 pytest tests/unit/test_dialects.py
+Snowflake, BigQuery and Redshift are not run against live accounts. These snapshots and a
+sqlglot parse in each target grammar pin the SQL; tests/integration runs it on emulators.
+To update after an intentional change: RECONKIT_UPDATE_SNAPSHOTS=1 pytest tests/unit/test_dialects.py
 """
 
 from __future__ import annotations

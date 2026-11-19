@@ -19,5 +19,40 @@ services:
       retries: 30
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  # Local emulators for the BigQuery and Redshift integration tests (docs/adapters.md;
+  # Snowflake's fakesnow runs in process and needs no container). Opt-in:
+  #   docker compose --profile emulators up -d bigquery floci
+  # `docker compose up postgres` does not start them. Ports bind to 127.0.0.1 only.
+  bigquery:
+    profiles: ["emulators"]
+    image: ghcr.io/goccy/bigquery-emulator:0.8.1
+    environment:
+      BIGQUERY_EMULATOR_PROJECT: reconkit-test
+      BIGQUERY_EMULATOR_DATASET: reconkit
+    ports:
+      - "127.0.0.1:59050:9050"
+    mem_limit: 1g
+
+  # Floci emulates the Redshift control plane and starts one PostgreSQL container per
+  # cluster through the Docker socket, behind an auth proxy on a port from the range
+  # below. tests/integration/test_redshift.py creates (and deletes) its cluster.
+  floci:
+    profiles: ["emulators"]
+    image: floci/floci:2.5.0
+    environment:
+      FLOCI_SERVICES_REDSHIFT_PROXY_BASE_PORT: "47100"
+      FLOCI_SERVICES_REDSHIFT_PROXY_MAX_PORT: "47109"
+      FLOCI_SERVICES_REDSHIFT_ENDPOINT_HOST: localhost
+      FLOCI_SERVICES_REDSHIFT_IMAGE_VERSION: postgres:16-alpine
+      FLOCI_SERVICES_REDSHIFT_AUTOMATED_SNAPSHOTS_ENABLED: "false"
+      FLOCI_SERVICES_REDSHIFT_CLOUDWATCH_METRICS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:45670:4566"
+      - "127.0.0.1:47100-47109:47100-47109"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: 1g
+
 volumes:
   pgdata:

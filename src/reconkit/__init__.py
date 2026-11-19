@@ -3,7 +3,7 @@
 from reconkit.diff.engine import TableSpec, diff_tables
 from reconkit.diff.model import ColumnDiff, DiffOptions, DiffResult, RowDiff, Tolerance
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "ColumnDiff",

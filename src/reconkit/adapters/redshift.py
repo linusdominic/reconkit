@@ -1,7 +1,12 @@
 """Amazon Redshift dialect and adapter.
 
 Status: the SQL generation is unit-tested against golden snapshots and parsed with
-sqlglot's Redshift grammar. It has NOT been run against a live Redshift cluster.
+sqlglot's Redshift grammar. The adapter is integration-tested against Floci 2.5.0's
+Redshift emulation (tests/integration/test_redshift.py): a cluster created through the
+Redshift API, reached with redshift_connector. Floci's data plane is PostgreSQL 16, so
+that proves the connection path and PostgreSQL semantics only; ``STRTOL`` does not exist
+there and the test supplies a stand-in. It has NOT been run against a live Redshift
+cluster.
 """
 
 from __future__ import annotations
@@ -22,7 +27,8 @@ class RedshiftDialect(Dialect):
         return f"STRTOL(SUBSTRING(MD5({expr}), {HASH_SUBSTR_START}), 16)"
 
     def float_input(self, expr: str) -> str:
-        # Same reasoning as the Postgres dialect; not verified against a live cluster.
+        # Same reasoning as the Postgres dialect. Verified on Floci (that is, on
+        # PostgreSQL), not against a live cluster.
         return f"CAST({expr} AS DOUBLE PRECISION)"
 
     def sum_hash(self, expr: str) -> str:
@@ -30,7 +36,7 @@ class RedshiftDialect(Dialect):
         return f"SUM(CAST({expr} AS DECIMAL(38, 0)))"
 
 
-def connect(config: dict[str, Any], name: str = "redshift") -> DbApiAdapter:  # pragma: no cover
+def connect(config: dict[str, Any], name: str = "redshift") -> DbApiAdapter:
     try:
         import redshift_connector
     except ImportError as exc:
