@@ -485,9 +485,13 @@ Things that are not done, not verified, or known to be weak.
   BigQuery, and BigQuery's column lookup.
 - The Airflow operator and Dagster helper are tested against stand-ins, not against a
   running scheduler.
-- The CI workflow runs lint, type checks, a Python 3.10 to 3.13 test matrix on Linux
-  with PostgreSQL 16, and a wheel smoke test, on every push to `main`. The example
-  workflow in `examples/github-actions/` has not been run.
+- The CI workflow runs on every push to `main`: lint and type checks; a Python 3.10 to
+  3.13 test matrix on Linux with PostgreSQL 16, which also runs the Snowflake tests on
+  fakesnow (Python 3.11 and later; fakesnow needs 3.11); an `emulators` job that runs the
+  BigQuery and Redshift tests against goccy/bigquery-emulator and Floci; and a wheel
+  smoke test. The first run of 0.2.0 passed every job (314 tests per matrix entry on
+  3.11 to 3.13, 306 on 3.10, 18 in the emulators job). The example workflow in
+  `examples/github-actions/` has not been run.
 - The benchmark was run on one laptop with both databases on localhost. It says nothing
   measured about networked or cloud warehouses.
 
@@ -558,8 +562,8 @@ oracle on random table pairs, and the data-diff and dbt compatibility tests on D
 With all of them running, coverage measured with pytest-cov is 95% of `src/reconkit`
 (statements and branches). `mypy --strict` passes with nine targeted `type: ignore`
 comments: optional-dependency shims (Airflow, Dagster, `tomli`), untyped Google client
-calls, and one decorator. The suite was last run on Python 3.12 (everything) and 3.10
-(the tests that need no database), on macOS arm64.
+calls, and one decorator. Locally the suite was last run on Python 3.12 (everything) and
+3.10 (the tests that need no database) on macOS arm64; CI runs it on Linux.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [docs/adapters.md](docs/adapters.md) for writing
 an adapter, and [CHANGELOG.md](CHANGELOG.md).
