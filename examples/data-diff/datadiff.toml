@@ -1,0 +1,25 @@
+# A data-diff configuration file, unchanged from what data-diff accepted.
+# Run with: reconkit data-diff --conf datadiff.toml --run payments
+
+[database.servicing]
+driver = "postgresql"
+host = "localhost"
+port = 55439
+database = "reconkit"
+user = "reconkit"
+password = "${RECONKIT_PG_PASSWORD}"
+
+[database.replica]
+driver = "duckdb"
+filepath = "examples/data-diff/replica.duckdb"
+
+[run.default]
+key_columns = ["payment_id"]
+update_column = "paid_at"
+
+[run.payments]
+1.database = "servicing"
+1.table = "servicing.payments"
+2.database = "replica"
+2.table = "payments"
+columns = ["amount", "status"]

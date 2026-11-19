@@ -356,5 +356,222 @@ def contract_diff(
     sys.exit(EXIT_DIFFERENCES if failed else EXIT_OK)
 
 
+@main.command("data-diff")
+@click.argument("database1", required=False)
+@click.argument("table1", required=False)
+@click.argument("database2", required=False)
+@click.argument("table2", required=False)
+@click.option(
+    "-k",
+    "--key-columns",
+    multiple=True,
+    metavar="NAME",
+    help="Key column; repeatable. Default: id.",
+)
+@click.option(
+    "-t",
+    "--update-column",
+    metavar="NAME",
+    help="Name of an updated_at column; compared, and used by --min-age/--max-age.",
+)
+@click.option(
+    "-c",
+    "--columns",
+    multiple=True,
+    metavar="NAME",
+    help="Extra column to compare; repeatable; % matches any characters.",
+)
+@click.option(
+    "-l", "--limit", type=int, metavar="NUM", help="Maximum number of differences to print."
+)
+@click.option("--bisection-factor", type=int, metavar="NUM", help="Segments per iteration.")
+@click.option(
+    "--bisection-threshold", type=int, metavar="NUM", help="Download segments at most this large."
+)
+@click.option(
+    "--min-age",
+    metavar="AGE",
+    help="Only rows older than this, e.g. 5min (by --update-column, in UTC).",
+)
+@click.option("--max-age", metavar="AGE", help="Only rows younger than this.")
+@click.option("-s", "--stats", is_flag=True, help="Print stats instead of a detailed diff.")
+@click.option("--json", "json_output", is_flag=True, help="Print JSON lines.")
+@click.option("-w", "--where", help="Extra SQL predicate applied to both tables.")
+@click.option(
+    "-a",
+    "--algorithm",
+    type=click.Choice(["auto", "joindiff", "hashdiff"]),
+    help="joindiff needs both tables in one database.",
+)
+@click.option("--case-sensitive", is_flag=True, help="Match column names case-sensitively.")
+@click.option(
+    "--assume-unique-key",
+    is_flag=True,
+    help="Accepted for compatibility; reconkit reports duplicate keys instead of failing.",
+)
+@click.option("-j", "--threads", metavar="N", help="Accepted for compatibility and ignored.")
+@click.option("-d", "--debug", is_flag=True, help="Same as --verbose.")
+@click.option(
+    "-v", "--verbose", is_flag=True, help="Print the columns compared and timing to stderr."
+)
+@click.option(
+    "--no-tracking",
+    is_flag=True,
+    help="Accepted for compatibility; reconkit sends nothing anywhere.",
+)
+@click.option("--table-write-limit", type=int, hidden=True)
+@click.option("-i", "--interactive", is_flag=True, hidden=True)
+@click.option("-m", "--materialize-to-table", hidden=True)
+@click.option("--materialize-all-rows", is_flag=True, hidden=True)
+@click.option("--sample-exclusive-rows", is_flag=True, hidden=True)
+@click.option("--cloud", is_flag=True, hidden=True)
+@click.option("--conf", type=click.Path(dir_okay=False), help="data-diff TOML configuration file.")
+@click.option("--run", "run_name", metavar="NAME", help="Run configuration to use from --conf.")
+@click.option("--dbt", is_flag=True, help="Compare each dbt model's dev build with production.")
+@click.option("--dbt-profiles-dir", help="Directory holding profiles.yml.")
+@click.option(
+    "--dbt-project-dir", help="Directory holding dbt_project.yml (default: current or a parent)."
+)
+@click.option("--select", help="dbt models to compare (a subset of dbt's selection syntax).")
+@click.option(
+    "--state",
+    type=click.Path(dir_okay=False),
+    help="Production manifest.json to take production locations from.",
+)
+@click.option("-pd", "--prod-database", help="Override the production database.")
+@click.option("-ps", "--prod-schema", help="Override the production schema.")
+@click.option(
+    "--fail-on-diff",
+    is_flag=True,
+    help="Exit 1 when differences are found (data-diff always exited 0).",
+)
+@click.option("--version", "show_version", is_flag=True, help="Print the version and exit.")
+@_handle_errors
+def data_diff_command(**kw: Any) -> None:
+    """Drop-in replacement for the archived data-diff command line.
+
+    \b
+    reconkit data-diff DB1_URI TABLE1 DB2_URI TABLE2 [OPTIONS]
+    reconkit data-diff --conf datadiff.toml --run NAME
+    reconkit data-diff --dbt [--select MODELS]
+
+    URIs: postgresql://, redshift://, snowflake://, bigquery://, duckdb://.
+    See docs/migrating-from-data-diff.md.
+    """
+    from reconkit.compat import datadiff, dbt
+
+    if kw.pop("show_version"):
+        click.echo(f"reconkit {__version__}")
+        return
+    if kw.pop("interactive"):
+        raise ConfigError("--interactive is not supported")
+    for key, flag in datadiff.UNSUPPORTED_OPTIONS.items():
+        if kw.pop(key):
+            raise ConfigError(
+                f"{flag} is not supported by reconkit (see docs/migrating-from-data-diff.md)"
+            )
+    verbose = bool(kw.pop("verbose")) | bool(kw.pop("debug"))
+    fail_on_diff = kw.pop("fail_on_diff")
+    if kw.pop("table_write_limit") is not None:
+        raise ConfigError("--table-write-limit is not supported by reconkit (no output tables)")
+    for ignored in ("threads", "no_tracking"):
+        kw.pop(ignored)
+    err = Console(stderr=True, highlight=False)
+
+    if kw.pop("dbt"):
+        for positional in ("database1", "table1", "database2", "table2"):
+            if kw[positional]:
+                raise click.UsageError("--dbt takes no database or table arguments")
+        models = dbt.dbt_diff(
+            dbt.DbtDiffArgs(
+                project_dir=kw["dbt_project_dir"],
+                profiles_dir=kw["dbt_profiles_dir"],
+                select=kw["select"],
+                state=kw["state"],
+                prod_database=kw["prod_database"],
+                prod_schema=kw["prod_schema"],
+                where=kw["where"],
+                columns=list(kw["columns"]),
+                algorithm=kw["algorithm"] or "auto",
+                limit=kw["limit"],
+            )
+        )
+        for md in models:
+            click.echo(dbt.render_model(md))
+        differs = any(md.differs for md in models)
+        sys.exit(EXIT_DIFFERENCES if fail_on_diff and differs else EXIT_OK)
+
+    for dbt_only in (
+        "dbt_profiles_dir",
+        "dbt_project_dir",
+        "select",
+        "state",
+        "prod_database",
+        "prod_schema",
+    ):
+        if kw.pop(dbt_only):
+            raise click.UsageError(f"--{dbt_only.replace('_', '-')} needs --dbt")
+
+    conf_path, run_name = kw.pop("conf"), kw.pop("run_name")
+    values: dict[str, Any] = {}
+    if conf_path:
+        values.update(datadiff.load_conf(conf_path, run_name))
+    elif run_name:
+        raise click.UsageError("--run needs --conf")
+    for ignored in (
+        "threads",
+        "verbose",
+        "debug",
+        "interactive",
+        "no_tracking",
+    ):
+        values.pop(ignored, None)
+    if values.pop("table_write_limit", None) is not None:
+        raise ConfigError("table_write_limit (from --conf) is not supported by reconkit")
+    for key, flag in datadiff.UNSUPPORTED_OPTIONS.items():
+        if values.pop(key, None):
+            raise ConfigError(f"{flag} (from --conf) is not supported by reconkit")
+    positionals = [kw.pop(k) for k in ("database1", "table1", "database2", "table2")]
+    if any(positionals):
+        if not all(positionals):
+            raise click.UsageError(
+                "give all four of DB1_URI TABLE1 DB2_URI TABLE2, or none with --conf"
+            )
+        values["database1"] = datadiff.connection(positionals[0])
+        values["table1"] = positionals[1]
+        values["database2"] = datadiff.connection(positionals[2])
+        values["table2"] = positionals[3]
+    for key, value in kw.items():
+        if value not in (None, False, ()):
+            values[key] = list(value) if isinstance(value, tuple) else value
+    for key in ("key_columns", "columns"):
+        if isinstance(values.get(key), str):
+            values[key] = [values[key]]
+        elif key in values:
+            values[key] = list(values[key])
+    if not values.get("key_columns"):
+        values.pop("key_columns", None)
+    missing = [k for k in ("database1", "table1", "database2", "table2") if not values.get(k)]
+    if missing:
+        raise click.UsageError(
+            "give DB1_URI TABLE1 DB2_URI TABLE2, or --conf with a run that names both sides"
+        )
+    try:
+        args = datadiff.DataDiffArgs(**values, fail_on_diff=fail_on_diff)
+    except TypeError as exc:
+        raise ConfigError(str(exc)) from exc
+    outcome = datadiff.run_data_diff(args)
+    if verbose:
+        err.print(
+            f"Diffing using columns: key={outcome.columns[: len(args.key_columns)]} "
+            f"compared={outcome.columns[len(args.key_columns) :]}",
+            markup=False,
+        )
+    datadiff.print_outcome(outcome, args)
+    if verbose:
+        err.print(f"Duration: {outcome.result.duration_seconds:.2f} seconds.", markup=False)
+    sys.exit(EXIT_DIFFERENCES if fail_on_diff and not outcome.result.is_match else EXIT_OK)
+
+
 if __name__ == "__main__":  # pragma: no cover
     main()

@@ -17,10 +17,11 @@ FAIL  loans  3 missing in left, 7 missing in right, 16 changed  0.36s
 (Output of the bundled example, abridged: a 50,000-row Postgres table against its DuckDB
 copy.)
 
-Status: version 0.1.0, alpha. PostgreSQL and DuckDB are integration-tested. Snowflake,
-BigQuery and Redshift have SQL dialects that are snapshot-tested but have **not** been run
-against live accounts. Not published to PyPI; install from source. See
-[Limitations](#limitations) before relying on it.
+Status: version 0.2.0, alpha. PostgreSQL and DuckDB are integration-tested. Snowflake,
+BigQuery and Redshift are integration-tested against local emulators (fakesnow,
+goccy/bigquery-emulator and Floci) but have **not** been run against live accounts. Not
+published to PyPI; install from source. See [Limitations](#limitations) before relying
+on it.
 
 ## The problem
 
@@ -71,6 +72,9 @@ copy can match its source perfectly and still not be what downstream users were 
   Stable exit codes. Optional append-only audit tables in a database of your choice.
 - **Integrations:** an Airflow operator, a Dagster asset-check helper, a GitHub Actions
   workflow to copy.
+- **A drop-in for data-diff.** `reconkit data-diff` takes the archived data-diff's
+  arguments, connection URIs, TOML files and `--dbt` mode, and prints its output formats.
+  See [Coming from data-diff](#coming-from-data-diff).
 
 ## Quickstart
 
@@ -134,6 +138,79 @@ Remove the `naive_timezone` line and run it again to see what an unreconciled ti
 convention looks like: every row is reported.
 
 When you are done: `docker compose down -v`.
+
+## Coming from data-diff
+
+[data-diff](https://github.com/datafold/data-diff) was archived in May 2024 and its main
+fork, reladiff, was last updated in August 2025. If you have scripts, CI jobs or dbt
+workflows that call it, replace `data-diff` with `reconkit data-diff`:
+
+```bash
+reconkit data-diff "postgresql://reconkit:${RECONKIT_PG_PASSWORD}@localhost:55439/reconkit" \
+    servicing.payments duckdb://examples/data-diff/replica.duckdb payments \
+    -k payment_id -c amount -c status
+```
+
+That is one of the commands in the bundled example, which seeds the two tables first:
+
+```
+$ ./examples/data-diff/run.sh
+seeded 1,000,000 payments in Postgres servicing.payments and replica.duckdb
+planted in the copy:
+  deleted (missing in B):        [72918, 399914, 791004]
+  added (missing in A):          [1000001, 1000002]
+  amount changed by one cent:    [120392, 515730, 807122]
+  status changed:                [278676, 348588, 464681]
+
+== the rows that differ (key, amount, status) ==
+- 72918, 813.13, SETTLED
+- 120392, 3486.44, SETTLED
++ 120392, 3486.45, SETTLED
+- 278676, 3874.47, SETTLED
++ 278676, 3874.47, RETURNED
+...
++ 1000001, 100.00, SETTLED
++ 1000002, 100.00, SETTLED
+
+real	0m3.820s
+
+== --stats ==
+1000000 rows in table A
+999999 rows in table B
+3 rows exclusive to table A (not present in B)
+2 rows exclusive to table B (not present in A)
+6 rows updated
+999991 rows unchanged
+0.00% difference score
+
+Extra-Info:
+  queries_A = 4
+  queries_B = 4
+  rows_downloaded = 1151
+  strategy = bisect/range
+  ...
+```
+
+That is a million-row Postgres table against its DuckDB copy on a laptop (both local).
+All eleven planted differences are reported and nothing else, using four queries per
+side and 1,151 downloaded rows. The 3.8 seconds are the first command's wall-clock time,
+including starting `uv` and Python; in the `--stats` run the diff itself took 1.06 s. The same script then runs the comparison from a data-diff TOML
+file (`--conf`, `--run`) and as a CI gate with `--fail-on-diff`.
+
+What carries over unchanged: the four positional arguments and URI formats for Postgres,
+Redshift, Snowflake, BigQuery and DuckDB; `-k`, `-t`, `-c` with `%` wildcards, `-w`,
+`--min-age`, `--max-age`, `-l`, `-a`, the bisection settings; `--stats` and `--json`;
+`--conf`/`--run`; and `--dbt` with data-diff's `vars: data_diff:` settings, primary-key
+detection and per-model `meta`. What differs: errors exit non-zero (data-diff exited 0),
+`--fail-on-diff` is new, and join-diff's materialisation options and Datafold Cloud are
+refused. The full list is in
+[docs/migrating-from-data-diff.md](docs/migrating-from-data-diff.md).
+
+The dbt mode is checked against data-diff's own expectations: its test suite ships a dbt
+project with dev and prod schemas and the output `data-diff --dbt` should print for it.
+That project is in `tests/fixtures/`, and `reconkit data-diff --dbt` reproduces the
+expected row counts, per-column counts and schema-change lines. reconkit has not been run
+side by side with the data-diff executable itself.
 
 ## Using it
 
@@ -350,12 +427,14 @@ the tools below.
 
 **[data-diff](https://github.com/datafold/data-diff)** (Datafold; archived in 2024) is
 where the checksum-bisection approach for cross-database diffs became widely known, and
-reconkit borrows it. data-diff supported far more databases than reconkit does, each
-actually run against the real engine, and it had years of production use. If you need
-MySQL, Oracle, Databricks or Trino today, its code is still the more complete reference,
-although unmaintained. What reconkit does differently: one grouped query per level rather
-than one query per segment, a finer first pass, tolerances applied in an exact local
-comparison, an explicit setting for naive local-time timestamps, and contracts.
+reconkit borrows it, along with its command line (`reconkit data-diff`). data-diff
+supported far more databases than reconkit does, each actually run against the real
+engine, and it had years of production use. If you need MySQL, Oracle, Databricks or
+Trino today, its code is still the more complete reference, although unmaintained. What
+reconkit does differently: one grouped query per level rather than one query per segment,
+a finer first pass, tolerances applied in an exact local comparison, an explicit setting
+for naive local-time timestamps, and contracts. **[reladiff](https://github.com/erezsh/reladiff)**,
+a community fork of data-diff, keeps its engine; it was last updated in August 2025.
 
 **[dbt audit_helper](https://github.com/dbt-labs/dbt-audit-helper)** compares two
 relations inside one warehouse with SQL macros. If both tables are in the same warehouse
@@ -394,15 +473,21 @@ Things that are not done, not verified, or known to be weak.
 
 **Not verified**
 
-- **Snowflake, BigQuery, Redshift**: dialect implemented, not integration-tested against
-  a live account. The generated SQL is pinned by snapshots and parses under sqlglot's
-  grammar for each engine; nothing proves those engines produce the same canonical text
-  as PostgreSQL and DuckDB. The connection code for these three has never been executed.
+- **Snowflake, BigQuery, Redshift** run only against emulators, never a live account.
+  Each is tested end to end on a 400-row table pair with planted differences, against
+  DuckDB and PostgreSQL, through its real client library: fakesnow 0.12.1 for Snowflake
+  (DuckDB underneath), goccy/bigquery-emulator 0.8.1, and Floci 2.5.0 for Redshift
+  (PostgreSQL underneath). An emulator is not the service: Snowflake's hex-to-number
+  hash, BigQuery's `MOD` and Redshift's `STRTOL` were replaced in the tests because the
+  emulators cannot run them, and every value is computed by the emulator's engine.
+  [docs/adapters.md](docs/adapters.md) lists what each one does and does not prove.
+  Running them found three bugs, fixed in 0.2.0: string escaping in Snowflake and
+  BigQuery, and BigQuery's column lookup.
 - The Airflow operator and Dagster helper are tested against stand-ins, not against a
   running scheduler.
-- The GitHub Actions workflows in this repository have not been run on GitHub.
-- The CI workflow defines a Python 3.10 to 3.13 matrix on Linux and has never run. The
-  suite was run locally on macOS arm64 only, on Python 3.10, 3.11, 3.12 and 3.13.
+- The CI workflow runs lint, type checks, a Python 3.10 to 3.13 test matrix on Linux
+  with PostgreSQL 16, and a wheel smoke test, on every push to `main`. The example
+  workflow in `examples/github-actions/` has not been run.
 - The benchmark was run on one laptop with both databases on localhost. It says nothing
   measured about networked or cloud warehouses.
 
@@ -458,14 +543,23 @@ uv run ruff format --check . && uv run ruff check . && uv run mypy
 uv run pytest --cov
 ```
 
-At 0.1.0 that is 244 tests: 234 that need no database (unit tests, golden SQL snapshots
-for all five dialects, and property-based tests that compare the diff against a
-brute-force oracle on random table pairs) and 10 against PostgreSQL 16, including the
-same property test with Postgres on one side. Coverage measured with pytest-cov is 97%
-of `src/reconkit` (statements and branches). That figure excludes, by `pragma: no
-cover`, the three functions that open Snowflake, BigQuery and Redshift connections, which
-cannot run here. `mypy --strict` passes with five targeted `type: ignore` comments, all
-on optional-dependency shims (Airflow, Dagster) and one decorator.
+The emulator tests need the emulators running and are skipped otherwise:
+
+```bash
+docker compose --profile emulators up -d bigquery floci
+RECONKIT_REQUIRE_PG=1 RECONKIT_REQUIRE_SNOWFLAKE=1 RECONKIT_REQUIRE_BIGQUERY=1 \
+  RECONKIT_REQUIRE_REDSHIFT=1 uv run pytest --cov
+```
+
+At 0.2.0 that is 331 tests: 291 that need no database (unit tests, golden SQL snapshots
+for all five dialects, property-based tests that compare the diff against a brute-force
+oracle on random table pairs, and the data-diff and dbt compatibility tests on DuckDB),
+14 against PostgreSQL 16, and 26 against the Snowflake, BigQuery and Redshift emulators.
+With all of them running, coverage measured with pytest-cov is 95% of `src/reconkit`
+(statements and branches). `mypy --strict` passes with nine targeted `type: ignore`
+comments: optional-dependency shims (Airflow, Dagster, `tomli`), untyped Google client
+calls, and one decorator. The suite was last run on Python 3.12 (everything) and 3.10
+(the tests that need no database), on macOS arm64.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [docs/adapters.md](docs/adapters.md) for writing
 an adapter, and [CHANGELOG.md](CHANGELOG.md).
