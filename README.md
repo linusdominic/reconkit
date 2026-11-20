@@ -81,7 +81,8 @@ copy can match its source perfectly and still not be what downstream users were 
 Requires Docker and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-git clone <this repository> reconkit && cd reconkit
+git clone https://github.com/linusdominic/reconkit.git
+cd reconkit
 ./examples/loans/run.sh
 ```
 
@@ -584,6 +585,16 @@ With all of them running, coverage measured with pytest-cov is 95% of `src/recon
 comments: optional-dependency shims (Airflow, Dagster, `tomli`), untyped Google client
 calls, and one decorator. Locally the suite was last run on Python 3.12 (everything) and
 3.10 (the tests that need no database) on macOS arm64; CI runs it on Linux.
+
+To stop everything afterwards, name the profile so that `down` includes the emulator
+containers (`-v` also deletes the Postgres volume; leave it off to keep the data):
+
+```bash
+docker compose --profile emulators down -v
+```
+
+The PostgreSQL container that Floci starts for the Redshift tests is not part of the
+compose project; the tests delete that cluster when they finish.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [docs/adapters.md](docs/adapters.md) for writing
 an adapter, and [CHANGELOG.md](CHANGELOG.md).
